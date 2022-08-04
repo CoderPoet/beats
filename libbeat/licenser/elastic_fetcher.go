@@ -71,8 +71,15 @@ func (f *ElasticFetcher) Fetch() (License, error) {
 		return License{}, err
 	}
 
-	if status != http.StatusOK {
-		return License{}, fmt.Errorf("error from server, response code: %d", status)
+	//check for is oss version only if status is either Bad request or Method not allowed
+	if status == http.StatusBadRequest {
+		f.log.Debug("Received 'Bad request' (400) response from server, fallback to OSS license")
+		return GenerateOSSLicense(), nil
+	}
+
+	if status == http.StatusMethodNotAllowed{
+		f.log.Debug("Received 'Method Not allowed' (405) response from server, fallback to OSS license")
+		return GenerateOSSLicense(), nil
 	}
 
 	license, err := f.parseJSON(body)
